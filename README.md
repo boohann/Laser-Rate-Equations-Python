@@ -1,2 +1,2 @@
 # Laser Rate Equation Python
-Laser rate equations solved in Python
+Laser rate equations solved in Python3
