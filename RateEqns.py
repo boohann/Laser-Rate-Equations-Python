@@ -70,8 +70,8 @@ def call_solv(x):
 
 
     ### Setup integrator with desired parameters ###
-    r = ode(laser_rates).set_integrator('vode', method = 'bdf')
-    #r = ode(Laser_rates).set_integrator('dopri5', nsteps = 1e4)
+    # Runge Kutta must be used as solver
+    r = ode(Laser_rates).set_integrator('dopri5', nsteps = 1e4)
     r.set_f_params(p).set_initial_value(y0, t0)
 
     
