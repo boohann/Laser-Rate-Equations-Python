@@ -17,19 +17,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 ### Mode select ###
-Mode = 1        # 0 is dynamic, 1 is steadt-state LI
+Mode = 1        # 0 is dynamic, 1 is steady-state LI
 
-### Simualtion Outputs ###
+### Simulation Outputs ###
 N     = []      # y[0] Carrier concentration
 S     = []      # y[1] Photon concentration
 T     = []      # Time array output
 N_end = []      # Take final N value for steady-state behaviour
 S_end = []      # Take final S value for steady-state behaviour
 
-### Simualtion input  parameters ###
+### Simulation input  parameters ###
 IA      = 20                                      # Pumping current (mA)
 I       = IA/1e3                                  # Pumping current (A)
-iIA     = np.linspace(0, 50, 100)                  # Generate multiple I for LI curve (mA)
+iIA     = np.linspace(0, 50, 100)                 # Generate multiple I for LI curve (mA)
 iI      = [x/1e3 for x in iIA]                    # Multiple I (A)
 q       = 1.6e-19                                 # Electron charge (C)
 V       = 2e-11                                   # Device volume (cm^3)
@@ -91,6 +91,8 @@ def call_solv(x):
     S_end.append(S[-1:])
     N_end.append(N[-1:])
 
+    return;
+
 
 ### Dynamic plotting ###
 def plot_dynam():
@@ -111,8 +113,8 @@ def plot_dynam():
 def plot_SS():
     
     ### Post solver calculations
-    P          = [h*f*((i*V)/tp)*1e3 for i in S_end]        # Power output (mW)
-    QE         = [i/j for i,j in zip(P, iIA)]               # Convert for quantum efficiency
+    P = [h*f*((i*V)/tp)*1e3 for i in S_end]        # Power output (mW)
+    QE = [i/j for i,j in zip(P, iIA)]              # Convert for quantum efficiency
 
     ### Plotting two parameters on one plot ###
     fig, ax1 = plt.subplots()
