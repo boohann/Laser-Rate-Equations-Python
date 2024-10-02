@@ -1,2 +1,2 @@
 # Laser Rate Equations Python
-Laser rate equations solved in Python3
+Simple laser rate equations for a lumped single mode in a laser cavity solved in Python3
