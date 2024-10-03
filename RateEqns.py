@@ -1,5 +1,5 @@
 ##########################################################
-### Program to simulate laser-rate equations in Python ###
+### Program to simulate laser rate equations in Python ###
 ############### Niall Boohan 2018 ########################
 ############### boohann@tcd.ie ###########################
 ##########################################################
