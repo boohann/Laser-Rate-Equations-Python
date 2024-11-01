@@ -23,8 +23,8 @@ CALC = 0        # 0 is dynamic, 1 is steady-state LI
 N     = []      # y[0] Carrier concentration
 S     = []      # y[1] Photon concentration
 T     = []      # Time array output
-N_end = []      # Take final N value for steady-state behaviour
-S_end = []      # Take final S value for steady-state behaviour
+N_end = []      # Take the final N value for steady-state behaviour
+S_end = []      # Take the final S value for steady-state behaviour
 
 ### Simulation input parameters ###
 IA      = 20                                      # Pumping current (mA)
@@ -46,7 +46,7 @@ Nth     = 1e18                                    # Threshold carrier density (c
 EPS     = 1.5e-17                                 # Gain compression factor (cm^3)
 Gamma   = 0.15                                    # Confinement factor
 Beta    = 1.0e-4                                  # Spontaneous Emission Factor
-h       = 6.62607004e-34                          # Plank's contant (Js)
+h       = 6.62607004e-34                          # Plank's constant (Js)
 c       = 2.99792458e8                            # SOL (ms^-1)
 WL      = 1300                                    # WL (nm)
 f       = c/(WL/1e9)                              # Frequency (Hz)
@@ -80,7 +80,7 @@ def call_solv(x):
 
 
     ### Setup integrator with desired parameters ###
-    # Runge-Kutta must be used as solver, mimimum 4th order
+    # Runge-Kutta must be used as a solver, minimum 4th order
     r = ode(laser_rates).set_integrator('dopri5', nsteps = 1e4)
     r.set_f_params(p).set_initial_value(y0, t0)
 
@@ -119,10 +119,10 @@ def plot_dynam():
     return;
 
 
-### Function for post solver steady-state LI calculations and plotting ###
+### Function for post-solver steady-state LI calculations and plotting ###
 def plot_SS():
     
-    ### Post solver calculations
+    ### Post-solver calculations
     P = [h*f*((i*V)/tp)*1e3 for i in S_end]        # Power output (mW)
     QE = [i/j for i,j in zip(P, iIA)]              # Convert for quantum efficiency
 
