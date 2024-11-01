@@ -16,8 +16,8 @@ from scipy.integrate import ode
 import numpy as np
 import matplotlib.pyplot as plt
 
-### Mode select ###
-Mode = 1        # 0 is dynamic, 1 is steady-state LI
+### Select calculation ###
+CALC = 1        # 0 is dynamic, 1 is steady-state LI
 
 ### Simulation Outputs ###
 N     = []      # y[0] Carrier concentration
@@ -26,24 +26,32 @@ T     = []      # Time array output
 N_end = []      # Take final N value for steady-state behaviour
 S_end = []      # Take final S value for steady-state behaviour
 
-### Simulation input  parameters ###
+### Simulation input parameters ###
 IA      = 20                                      # Pumping current (mA)
 I       = IA/1e3                                  # Pumping current (A)
 iIA     = np.linspace(0, 50, 100)                 # Generate multiple I for LI curve (mA)
 iI      = [x/1e3 for x in iIA]                    # Multiple I (A)
+α       = 5                                       # Cavity lasing mode loss (cm^-1)
+n       = 3.2                                     # Cavity refractive index
 q       = 1.6e-19                                 # Electron charge (C)
-V       = 2e-11                                   # Device volume (cm^3)
+L       = 400                                     # Cavity length (um)
+w       = 2                                       # Cavity width (um)
+h       = 100                                     # Height of active region (nm)
+V       = L*w*h*(1e-15)                           # Device volume (cm^3), cm^3 conversion factor
+R_l     = 0.3                                     # Left facet relfectance
+R_r     = 0.3                                     # Right facet relfectance
 tn      = 1.0e-9                                  # Carrier relaxation time in seconds (s)
 g0      = 1.5e-5                                  # Gain slope constant (cm^3s^-1)
 Nth     = 1e18                                    # Threshold carrier density (cm^-3)
 EPS     = 1.5e-17                                 # Gain compression factor (cm^3)
-Gamma   = 0.2                                     # Confinement factor
-tp      = 1.0e-12                                 # Photon round-trip time in cavity (s)
+Gamma   = 0.15                                    # Confinement factor
 Beta    = 1.0e-4                                  # Spontaneous Emission Factor
 h       = 6.62607004e-34                          # Plank's contant (Js)
 c       = 2.99792458e8                            # SOL (ms^-1)
 WL      = 1300                                    # WL (nm)
 f       = c/(WL/1e9)                              # Frequency (Hz)
+tp      = c*(1-R_l*R_r)/(2*n*L*1e-6)              # Photon round-trip time in cavity (s)
+tα      = 1/(c*α*100)                             # Photon lifetime material loss (s)
 
 def call_solv(x):
 
@@ -57,7 +65,7 @@ def call_solv(x):
         
         dy = np.zeros([2])
         dy[0] = (x/(q* V)) - (y[0]/tn) -  g0*(y[0] - Nth)*(y[1]/(1 + EPS* y[1]))
-        dy[1] = Gamma* g0* (y[0] - Nth)*(y[1]/(1 + EPS* y[1])) - y[1]/tp + (Gamma* Beta* y[0]) / tn
+        dy[1] = Gamma* g0* (y[0] - Nth)*(y[1]/(1 + EPS* y[1])) - y[1]/(tp+tα) + (Gamma* Beta* y[0]) / tn
         
         return dy
         
@@ -70,7 +78,7 @@ def call_solv(x):
 
 
     ### Setup integrator with desired parameters ###
-    # Runge Kutta must be used as solver
+    # Runge-Kutta must be used as solver, mimimum 4th order
     r = ode(laser_rates).set_integrator('dopri5', nsteps = 1e4)
     r.set_f_params(p).set_initial_value(y0, t0)
 
@@ -99,17 +107,17 @@ def plot_dynam():
 
     f, axarr = plt.subplots(2, sharex=True) # Two subplots, the axes array is 1-d
     axarr[0].plot(T, N, 'G')
-    axarr[0].set_ylabel("Carrier Conc ($cm^{-3}$)")
-    axarr[0].set_title('Laser-Rate Simulation')
+    axarr[0].set_ylabel("Carrier conc ($cm^{-3}$)")
+    axarr[0].set_title('Laser-rate simulation')
     axarr[1].plot(T, S, 'B')
-    axarr[1].set_ylabel("Photon Conc ($cm^{-3}$)")
+    axarr[1].set_ylabel("Photon concentration ($cm^{-3}$)")
     axarr[1].set_xlabel("Time (s)")
     plt.show()
 
     return;
 
 
-### Function for post solver steady-state LI calculations ###
+### Function for post solver steady-state LI calculations and plotting ###
 def plot_SS():
     
     ### Post solver calculations
@@ -123,21 +131,21 @@ def plot_SS():
     ax2.plot(iIA, QE, 'b-')
     ax1.set_xlabel('Current (mA)')
     ax1.set_ylabel('Power (mW)', color='g')
-    ax2.set_ylabel('Quantum Efficiency', color='b')
-    plt.title("Steady-State Solution")
+    ax2.set_ylabel('Quantum efficiency', color='b')
+    plt.title("Steady-state solution")
     plt.show()
 
     return;
 
 
 ### Dynamic mode ###
-if(Mode == 0):
+if(CALC == 0):
     call_solv(I)
     plot_dynam()
 
 
 ### Steady-state mode ###
-if(Mode == 1):
+if(CALC == 1):
     for i in iI:
         call_solv(i)
     plot_SS()
