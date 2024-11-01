@@ -17,7 +17,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 ### Select calculation ###
-CALC = 1        # 0 is dynamic, 1 is steady-state LI
+CALC = 0        # 0 is dynamic, 1 is steady-state LI
 
 ### Simulation Outputs ###
 N     = []      # y[0] Carrier concentration
@@ -38,8 +38,8 @@ L       = 400                                     # Cavity length (um)
 w       = 2                                       # Cavity width (um)
 h       = 100                                     # Height of active region (nm)
 V       = L*w*h*(1e-15)                           # Device volume (cm^3), cm^3 conversion factor
-R_l     = 0.3                                     # Left facet relfectance
-R_r     = 0.3                                     # Right facet relfectance
+r_l     = 0.5                                     # Left facet reflectivity
+r_r     = 0.5                                     # Right facet reflectivity
 tn      = 1.0e-9                                  # Carrier relaxation time in seconds (s)
 g0      = 1.5e-5                                  # Gain slope constant (cm^3s^-1)
 Nth     = 1e18                                    # Threshold carrier density (cm^-3)
@@ -50,8 +50,10 @@ h       = 6.62607004e-34                          # Plank's contant (Js)
 c       = 2.99792458e8                            # SOL (ms^-1)
 WL      = 1300                                    # WL (nm)
 f       = c/(WL/1e9)                              # Frequency (Hz)
-tp      = c*(1-R_l*R_r)/(2*n*L*1e-6)              # Photon round-trip time in cavity (s)
+tp      = 1/((c/(L*1e-6))*np.log(1/(r_l*r_r)))    # Photon round-trip time in cavity (s)
 tα      = 1/(c*α*100)                             # Photon lifetime material loss (s)
+
+
 
 def call_solv(x):
 
@@ -71,7 +73,7 @@ def call_solv(x):
         
 
     ### Time, initial conditions & add paramters ###  
-    t0 = 0; tEnd = 1e-8; dt = 1e-13                     # Time constraints
+    t0 = 0; tEnd = 5e-9; dt = 1e-13                     # Time constraints
     y0 = [1e16, 0]                                      # Initial conditions [N, S]
     Y=[]; T=[]                                          # Create empty lists
     p = [I, q, V, tn, g0, Nth, EPS, Gamma, tp, Beta]    # Parameters for odes
@@ -106,10 +108,10 @@ def call_solv(x):
 def plot_dynam():
 
     f, axarr = plt.subplots(2, sharex=True) # Two subplots, the axes array is 1-d
-    axarr[0].plot(T, N, 'G')
+    axarr[0].plot(T, N, 'g-')
     axarr[0].set_ylabel("Carrier conc ($cm^{-3}$)")
     axarr[0].set_title('Laser-rate simulation')
-    axarr[1].plot(T, S, 'B')
+    axarr[1].plot(T, S, 'b-')
     axarr[1].set_ylabel("Photon concentration ($cm^{-3}$)")
     axarr[1].set_xlabel("Time (s)")
     plt.show()
