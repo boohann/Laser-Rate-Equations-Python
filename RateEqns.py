@@ -19,23 +19,14 @@ from scipy import cons
 
 ### Select calculation ###
 CALC = 0        # 0 is dynamic, 1 is steady-state LI
-IA     = np.linspace(0, 50, 100)                 # Generate multiple I for LI curve (mA)
-I      = [x/1e3 for x in iIA]                    # Multiple I (A)
+current_sweep     = np.linspace(0, 50, 100)                 # Generate multiple I for LI curve (mA)
+current      = [i/1e3 for i in current_sweep]                    # Multiple I (A)
+current = 20/1e3            
 
-
-### Simulation Outputs ###
-#N     = []      # y[0] Carrier concentration
-#S     = []      # y[1] Photon concentration
-#T     = []      # Time array output
-#N_end = []      # Take the final N value for steady-state behaviour
-#S_end = []      # Take the final S value for steady-state behaviour
 
 ### Simulation input parameters ###
-                                
-
-
 LASER_PARAMS = {
-    'I': 20/1e3,            # Pumping current (A)
+    'I': I    # Pumping current (A)
     'α': 5,                 # Cavity lasing mode loss (cm^-1)
     'n': 3.2,               # Cavity refractive index
     'L': 400,                # Cavity length
@@ -67,31 +58,19 @@ class SimConfig:
 ### Define equations to be solved ###
 def laser_rates(t, y, p):       
   dy = np.zeros([2])
-  dy[0] = (x/(p['q']*p['V'])) - (y[0]/p['τ_n']) -  p['g0']*(y[0]-p['N_tr'])*(y[1]/(1+p['ε']*y[1]))
+  dy[0] = (x/(p['q']*p['V'])) - (y[0]/p['τ_n']) -  p['g_0']*(y[0]-p['N_tr'])*(y[1]/(1+p['ε']*y[1]))
   dy[1] = p['Γ']*p['g_0']*(y[0]-p['N_tr'])*(y[1]/(1+p['ε']* y[1])) - y[1]/(p['τ_p']+p['τ_α']) + (p['Γ']*p['β']*y[0])/p['τ_n']     
   return dy
         
 
-def call_solv(x):
+def call_solv(p, I):
 
-    ### Ensures global values of S, N, and T are updated from this function ###
-    #global S
-    #global N
-    #global T
-    
-
-
-    ### Time, initial conditions & add paramters ###  
-    #t0 = 0; tEnd = 5e-9; dt = 1e-13                     # Time constraints
-    y0 = [1e16, 0]                                      # Initial conditions [N, S]
-    Y=[]; T=[]                                          # Create empty lists
-    #p = [I, q, V, tn, g0, Nth, EPS, Γ, tp, Beta]    # Parameters for odes
-
-
+    Y=[]; T=[]     # Create empty output lists, N=Y[:, 0],  N=Y[:, 1]
+ 
     ### Setup integrator with desired parameters ###
     # Runge-Kutta must be used as a solver, minimum 4th order
     r = ode(laser_rates).set_integrator('dopri5', nsteps = 1e4)
-    r.set_f_params(LASER_PARAMS).set_initial_value([N_INITIAL, S_INITIAL], T_START)
+    r.set_f_params([p, I]).set_initial_value([N_INITIAL, S_INITIAL], T_START)
 
     
     ### Simulation check ###
@@ -103,21 +82,19 @@ def call_solv(x):
 
     ### Format output ###
     Y = np.array(Y)          # Convert from list to 2d array
-    N = Y[:, 0] 
-    S = Y[:, 1] 
 
     ### Take final value for steady-state LI ###
-    return T, N, S, N[-1:], S[-1:]
+    return T, Y[:, 0], Y[:, 1], Y[:, 0][-1:], Y[:, 1][-1:]
 
 
 ### Dynamic plotting ###
-def plot_dynam(T, N, S):
+def plot_dynamic(t, n, s):
 
     f, axarr = plt.subplots(2, sharex=True) # Two subplots, the axes array is 1-d
-    axarr[0].plot(T, N, 'g-')
+    axarr[0].plot(t, n, 'g-')
     axarr[0].set_ylabel("Carrier conc ($cm^{-3}$)")
     axarr[0].set_title('Laser-rate simulation')
-    axarr[1].plot(T, S, 'b-')
+    axarr[1].plot(t, s, 'b-')
     axarr[1].set_ylabel("Photon concentration ($cm^{-3}$)")
     axarr[1].set_xlabel("Time (s)")
     plt.show()
@@ -127,11 +104,11 @@ def plot_dynam(T, N, S):
 
 
 ### Function for post-solver steady-state LI calculations and plotting ###
-def plot_SS():
+def plot_steady_state(p, s):
     
     ### Post-solver calculations
-    P = [cons.h*f*((i*V)/tp)*1e3 for i in S_end]        # Power output (mW)
-    QE = [i/j for i,j in zip(P, iIA)]              # Convert for quantum efficiency
+    P = [cons.h*p['f']*((i*p['V'])/p['tp'])*1e3 for i in s]        # Power output (mW)
+    QE = [i/j for i,j in zip(P, p['I'])]              # Convert for quantum efficiency
 
     ### Plotting two parameters on one plot ###
     fig, ax1 = plt.subplots()
@@ -148,16 +125,16 @@ def plot_SS():
     
 
 
-### Dynamic mode ###
+### Dynamic ###
 if(CALC == 0):
-    T, N, S, _, _ = call_solv(LASER_PARAMS['I'])
-    plot_dynam(T, N, S)
+    T, N, S, _, _ = solve(current, LASER_PARAMS)
+    plot_dynamic(T, N, S)
 
 
-### Steady-state mode ###
+### Steady-state ###
 if(CALC == 1):
     S_final = []
-    for i in iI:
-        _, _, _, _, S_hld = call_solv(i)
+    for i in current:
+        _, _, _, _, S_hld = solve(i, LASER_PARAMS)
         S_final.append(S_hld)
-    plot_SS(S_final)
+    plot_steady_state(S_final)
