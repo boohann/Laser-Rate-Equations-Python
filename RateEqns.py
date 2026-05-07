@@ -44,7 +44,7 @@ LASER_PARAMS = {
     'β':1e-4,            # Spontaneous Emission Factor
     'Γ':0.15,            # Quantum well confinement factor
     'τ_n':1.0e-9,        # Carrier relaxation time in seconds (s)
-    'g_0':1.5e-5,         # Gain slope constant (cm^3s^-1)
+    'g':1.5e-5,          # Gain slope constant (cm^3s^-1)
     'N_tr':1e17,         # Transparency carrier density (cm^-3)
     'ε':1.5e-17,         # Gain compression factor (cm^3)
 }
@@ -58,7 +58,7 @@ class SimConfig:
 
 ### Define equations to be solved ###
 
-def laser_rates(t, y, [p, I]):       
+def laser_rates(t, y, p, I):       
   dy = np.zeros([2])
   τ_p = 1/((constants.c/(p['L']*1e-6))*np.log(1/(p['r_l']*p['r_r'])))        # Photon round-trip time in cavity (s)
   τ_α = 1/(constants.c*p['α']*100)                                           # Photon lifetime from cavity loss (s)
@@ -66,8 +66,8 @@ def laser_rates(t, y, [p, I]):
   
   # dN/dt = I/(q*V) - N/τ_n - dg*S(N-N_tr)/(1+ε*S)
   # dS/dt = Γ*g_0*dg*S*(N-N_tr)/(1+ε*S) - S/τ_p - Γ*β*N/τ_n
-  dy[0] = (I/(constants.q*p['V'])) - (y[0]/p['τ_n']) -  p['dg']*(y[0]-p['N_tr'])*(y[1]/(1+p['ε']*y[1]))
-  dy[1] = p['Γ']*p['g_0']*(y[0]-p['N_tr'])*(y[1]/(1+p['ε']* y[1])) - y[1]/(p['τ_p']+p['τ_α']) + (p['Γ']*p['β']*y[0])/p['τ_n']     
+  dy[0] = (I/(constants.q*V)) - (y[0]/p['τ_n']) -  p['g']*(y[0]-p['N_tr'])*(y[1]/(1+p['ε']*y[1]))
+  dy[1] = p['Γ']*p['g']*(y[0]-p['N_tr'])*(y[1]/(1+p['ε']* y[1])) - y[1]/(p['τ_p']+p['τ_α']) + (p['Γ']*p['β']*y[0])/p['τ_n']     
   return dy
         
 
@@ -134,7 +134,7 @@ def plot_steady_state(p, s, I):
 
 ### Dynamic ###
 if(CALC == 0):
-    T, N, S, _, _ = solve(current_single, LASER_PARAMS)
+    T, N, S, _, _ = solve(LASER_PARAMS, current_single)
     plot_dynamic(T, N, S)
 
 
@@ -142,6 +142,6 @@ if(CALC == 0):
 if(CALC == 1):
     S_final = []
     for i in current_sweep:
-        _, _, _, _, S_hld = solve(i, LASER_PARAMS)
+        _, _, _, _, S_hld = solve(LASER_PARAMS, i)
         S_final.append(S_hld)
     plot_steady_state(S_final, LASER_PARAMS, current_sweep)
