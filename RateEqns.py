@@ -11,6 +11,12 @@
 # DOI: 10.1109/50.580827
 # URL: http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=580827&isnumber=12618
 
+# Title: Extraction of laser rate equations parameters for representative simulations
+#        of metropolitan-area transmission systems and network
+# Authors: I. Tomkos, I. Roudas, R. Hesse, N. Antoniades, A. Boskovic, R. Vodhanel
+# DOI: https://doi.org/10.1016/S0030-4018(01)01230-5
+# URL: https://www.sciencedirect.com/science/article/abs/pii/S0030401801012305?via%3Dihub
+
 ### Import necessary libraries ###
 from scipy.integrate import ode
 import numpy as np
@@ -18,32 +24,29 @@ import matplotlib.pyplot as plt
 from scipy import constants
 
 ### Select calculation ###
-CALC = 0                                    # 0 is dynamic, 1 is steady-state LI
-current_sweep = np.linspace(0, 50, 100)     # Generate multiple I for LI curve (mA)
-current = [i/1e3 for i in current_sweep]    # Multiple I (A)
-current = 20/1e3            
+CALC = 0                                            # 0 is dynamic, 1 is steady-state LI
+current_single = 20/1e3                             # Set constant current for dynamic calculation (A)      
+current_sweep = np.linspace(0, 50, 100)             # Generate multiple I for steady-state LI curve (mA)
+current_sweep = [i/1e3 for i in current_sweep]      # Multiple I (A)
+          
 
 
 ### Simulation input parameters ###
 LASER_PARAMS = {
-    'α': 5,                 # Cavity lasing mode loss (cm^-1)
-    'n': 3.2,               # Cavity refractive index
-    'L': 400,                # Cavity length
-    'w': 2,                   # Cavity width
-    'h_active': 100,            # Height active region (nm)
-    'V': LASER_PARAMS['L']*LASER_PARAMS['w']*LASER_PARAMS['h_active']*(1e-15),        # Volume active region  (cm^3)    
-    'r_l': 0.5,                # Left amplitude reflectivity
-    'r_r': 0.5,             # Left amplitude reflectivity
-    'β':1e-4,             # Spontaneous Emission Factor
+    'α': 5,              # Lasing mode cavity loss (cm^-1)
+    'n': 3.2,            # Cavity refractive index
+    'L': 400,            # Cavity length (um)
+    'w': 2,              # Cavity width  (um)
+    'h_active': 100,     # Height active region (nm)
+    'λ':1300,            # Lasing mode wavelength (nm)
+    'r_l': 0.5,          # Left facet amplitude reflectivity
+    'r_r': 0.5,          # Right facet amplitude reflectivity
+    'β':1e-4,            # Spontaneous Emission Factor
     'Γ':0.15,            # Quantum well confinement factor
-    'τ_n':1.0e-9,                                  # Carrier relaxation time in seconds (s)
-    'τ_p':1/((constants.c/(LASER_PARAMS['L']*1e-6))*np.log(1/(LASER_PARAMS['r_l']*LASER_PARAMS['r_r']))),   # Photon round-trip time in cavity (s)
-    'τ_α':1/(constants.c*LASER_PARAMS['α']*100),                             # Photon lifetime material loss (s)
-    'g_0':1.5e-5,                                  # Gain slope constant (cm^3s^-1)
-    'N_tr':1e17,                                    # Transparency carrier density (cm^-3)
-    'ε':1.5e-17,                                 # Gain compression factor (cm^3)
-    'λ':1300,                                    # WL (nm)
-    'f':constants.c/(LASER_PARAMS['λ']/1e9)                              # Frequency (Hz)   
+    'τ_n':1.0e-9,        # Carrier relaxation time in seconds (s)
+    'g_0':1.5e-5,         # Gain slope constant (cm^3s^-1)
+    'N_tr':1e17,         # Transparency carrier density (cm^-3)
+    'ε':1.5e-17,         # Gain compression factor (cm^3)
 }
 
 # Config hard-coded values ###
@@ -54,9 +57,16 @@ class SimConfig:
     S_INITIAL = 0
 
 ### Define equations to be solved ###
+
 def laser_rates(t, y, [p, I]):       
   dy = np.zeros([2])
-  dy[0] = (I/(constants.q*p['V'])) - (y[0]/p['τ_n']) -  p['g_0']*(y[0]-p['N_tr'])*(y[1]/(1+p['ε']*y[1]))
+  τ_p = 1/((constants.c/(p['L']*1e-6))*np.log(1/(p['r_l']*p['r_r'])))        # Photon round-trip time in cavity (s)
+  τ_α = 1/(constants.c*p['α']*100)                                           # Photon lifetime from cavity loss (s)
+  V = p['L']*p['w']*p['h_active']*(1e-15)                                    # Volume active region  (cm^3) 
+  
+  # dN/dt = I/(q*V) - N/τ_n - dg*S(N-N_tr)/(1+ε*S)
+  # dS/dt = Γ*g_0*dg*S*(N-N_tr)/(1+ε*S) - S/τ_p - Γ*β*N/τ_n
+  dy[0] = (I/(constants.q*p['V'])) - (y[0]/p['τ_n']) -  p['dg']*(y[0]-p['N_tr'])*(y[1]/(1+p['ε']*y[1]))
   dy[1] = p['Γ']*p['g_0']*(y[0]-p['N_tr'])*(y[1]/(1+p['ε']* y[1])) - y[1]/(p['τ_p']+p['τ_α']) + (p['Γ']*p['β']*y[0])/p['τ_n']     
   return dy
         
@@ -103,10 +113,9 @@ def plot_dynamic(t, n, s):
 
 ### Function for post-solver steady-state LI calculations and plotting ###
 def plot_steady_state(p, s, I):
-    
-    ### Post-solver calculations
-    P = [constants.h*p['f']*((i*p['V'])/p['τ_p'])*1e3 for i in s]        # Power output (mW)
-    QE = [i/j for i,j in zip(P, I)]              # Convert for quantum efficiency
+    f = constants.c/(p['λ']/1e9)                                     # Frequency of mode calculate (Hz)   
+    P = [constants.h*p['f']*((i*p['V'])/p['τ_p'])*1e3 for i in s]    # Power output (mW)
+    QE = [i/j for i,j in zip(P, I)]                                  # Convert for quantum efficiency
 
     ### Plotting two parameters on one plot ###
     fig, ax1 = plt.subplots()
@@ -125,14 +134,14 @@ def plot_steady_state(p, s, I):
 
 ### Dynamic ###
 if(CALC == 0):
-    T, N, S, _, _ = solve(current, LASER_PARAMS)
+    T, N, S, _, _ = solve(current_single, LASER_PARAMS)
     plot_dynamic(T, N, S)
 
 
 ### Steady-state ###
 if(CALC == 1):
     S_final = []
-    for i in current:
+    for i in current_sweep:
         _, _, _, _, S_hld = solve(i, LASER_PARAMS)
         S_final.append(S_hld)
-    plot_steady_state(S_final, LASER_PARAMS)
+    plot_steady_state(S_final, LASER_PARAMS, current_sweep)
