@@ -19,6 +19,9 @@ from scipy import cons
 
 ### Select calculation ###
 CALC = 0        # 0 is dynamic, 1 is steady-state LI
+IA     = np.linspace(0, 50, 100)                 # Generate multiple I for LI curve (mA)
+I      = [x/1e3 for x in iIA]                    # Multiple I (A)
+
 
 ### Simulation Outputs ###
 #N     = []      # y[0] Carrier concentration
@@ -29,8 +32,6 @@ CALC = 0        # 0 is dynamic, 1 is steady-state LI
 
 ### Simulation input parameters ###
                                 
-iIA     = np.linspace(0, 50, 100)                 # Generate multiple I for LI curve (mA)
-iI      = [x/1e3 for x in iIA]                    # Multiple I (A)
 
 
 LASER_PARAMS = {
@@ -40,18 +41,18 @@ LASER_PARAMS = {
     'L': 400,                # Cavity length
     'w': 2,                   # Cavity width
     'h_active': 100,            # Height active region (nm)
-    'V': L*w*h*(1e-15),        # Volume active region  (cm^3)    
+    'V': L*w*h_active*(1e-15),        # Volume active region  (cm^3)    
     'r_l': 0.5,                # Left amplitude reflectivity
     'r_r': 0.5,             # Left amplitude reflectivity
     'β':1e-4,             # Spontaneous Emission Factor
     'Γ':0.15,            # Quantum well confinement factor
-    'τ_n':1.0e-9                                  # Carrier relaxation time in seconds (s)
+    'τ_n':1.0e-9,                                  # Carrier relaxation time in seconds (s)
     'τ_p':1/((cons.c/(L*1e-6))*np.log(1/(r_l*r_r)))    # Photon round-trip time in cavity (s)
     'τ_α':1/(cons.c*α*100)                             # Photon lifetime material loss (s)
     'g_0':1.5e-5                                  # Gain slope constant (cm^3s^-1)
     'N_tr':1e17                                    # Transparency carrier density (cm^-3)
-    'EPS':1.5e-17                                 # Gain compression factor (cm^3)
-    'WL':1300                                    # WL (nm)
+    'ε':1.5e-17                                 # Gain compression factor (cm^3)
+    'λ':1300                                    # WL (nm)
     'f':cons.c/(WL/1e9)                              # Frequency (Hz)   
 }
 
@@ -63,22 +64,22 @@ class SimConfig:
     N_INITIAL = 1e16
     S_INITIAL = 0
 
+### Define equations to be solved ###
+def laser_rates(t, y, p):       
+  dy = np.zeros([2])
+  dy[0] = (x/(p['q']*p['V'])) - (y[0]/p['τ_n']) -  p['g0']*(y[0]-p['N_tr'])*(y[1]/(1+p['ε']*y[1]))
+  dy[1] = p['Γ']*p['g_0']*(y[0]-p['N_tr'])*(y[1]/(1+p['ε']* y[1])) - y[1]/(p['τ_p']+p['τ_α']) + (p['Γ']*p['β']*y[0])/p['τ_n']     
+  return dy
+        
+
 def call_solv(x):
 
     ### Ensures global values of S, N, and T are updated from this function ###
-    global S
-    global N
-    global T
+    #global S
+    #global N
+    #global T
     
-    ### Define equations to be solved ###
-    def laser_rates(t, y, p):
-        
-        dy = np.zeros([2])
-        dy[0] = (x/(q* V)) - (y[0]/τ_n) -  g0*(y[0] - N_tr)*(y[1]/(1 + EPS* y[1]))
-        dy[1] = Γ* g0* (y[0] - N_tr)*(y[1]/(1 + EPS* y[1])) - y[1]/(tp+tα) + (Γ* β* y[0]) / tn
-        
-        return dy
-        
+
 
     ### Time, initial conditions & add paramters ###  
     #t0 = 0; tEnd = 5e-9; dt = 1e-13                     # Time constraints
@@ -90,12 +91,12 @@ def call_solv(x):
     ### Setup integrator with desired parameters ###
     # Runge-Kutta must be used as a solver, minimum 4th order
     r = ode(laser_rates).set_integrator('dopri5', nsteps = 1e4)
-    r.set_f_params(LASER_PARAMS).set_initial_value([N_INITIAL, S_INITIAL], T_START = 0)
+    r.set_f_params(LASER_PARAMS).set_initial_value([N_INITIAL, S_INITIAL], T_START)
 
     
     ### Simulation check ###
-    while r.successful() and r.t+dt < tEnd:
-        r.integrate(r.t + dt)
+    while r.successful() and r.t+DT < T_END:
+        r.integrate(r.t + DT)
         Y.append(r.y)        # Makes a list of 1d arrays
         T.append(r.t)
     
@@ -122,7 +123,7 @@ def plot_dynam(T, N, S):
     plt.show()
     plt.close()
 
-    return;
+    
 
 
 ### Function for post-solver steady-state LI calculations and plotting ###
@@ -144,12 +145,12 @@ def plot_SS():
     plt.show()
     plt.close()
 
-    return;
+    
 
 
 ### Dynamic mode ###
 if(CALC == 0):
-    T, N, S, _, _ = call_solv(I)
+    T, N, S, _, _ = call_solv(LASER_PARAMS['I'])
     plot_dynam(T, N, S)
 
 
@@ -159,4 +160,4 @@ if(CALC == 1):
     for i in iI:
         _, _, _, _, S_hld = call_solv(i)
         S_final.append(S_hld)
-    plot_SS(S_hld)
+    plot_SS(S_final)
