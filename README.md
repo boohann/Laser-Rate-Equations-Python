@@ -21,15 +21,14 @@ This project solves laser rate equations numerically using Python 3.
 - Python 3.x
 - [List dependencies here]
 
-### Installation
-[Add installation instructions]
-
 ### Usage
-[Add basic usage example]
+- Change values in LASER_PARAMS to match those of the device you wish to model
+- Values in SimConfig can also be changed. The preset values of 2.5~ns for scan time length, and 0.1~ps
+  for scan time step are typical values for a semiconductor laser to allow the calculation to converge 
 
 ## Documentation
 
-For detailed theoretical background on the laser rate equation approach, refer to `Solving_Rate_Equations.pdf`.
+For a basic description on the laser rate equation approach, refer to `Solving_Rate_Equations.pdf`.
 
 ## Future Updates
 - Migrate `Solving_Rate_Equations.pdf` documentation to CodeWiki
