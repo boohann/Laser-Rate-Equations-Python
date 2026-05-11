@@ -23,7 +23,7 @@ This project solves laser rate equations numerically using Python 3.
 
 ### Usage
 - Change values in LASER_PARAMS to match those of the device you wish to model
-- Values in SimConfig can also be changed. The preset values of 2.5~ns for scan time length, and 0.1~ps
+- Values in SimConfig can also be changed. The preset values of 2.5 ns for scan time length, and 0.1 ps
   for scan time step are typical values for a semiconductor laser to allow the calculation to converge 
 
 ## Documentation
