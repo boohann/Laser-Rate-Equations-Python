@@ -56,7 +56,7 @@ LASER_PARAMS = {
 
 # Hard-coded simulation parameters ###
 class SimConfig:
-    T_END = 5e-9         # End time (s)
+    T_END = 2.5e-9         # End time (s)
     DT = 1e-13           # Time step (s)
     N_INITIAL = 1e16     # Initial carrier concentration (cm^-3)
     S_INITIAL = 0        # Initial photon concentration (cm^-3)
