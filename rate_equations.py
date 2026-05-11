@@ -18,6 +18,10 @@
 # DOI: https://doi.org/10.1016/S0030-4018(01)01230-5
 
 
+# Version 2.0.0 7/5/26 ###
+
+
+
 ### Import necessary libraries ###
 import numpy as np
 import matplotlib.pyplot as plt
