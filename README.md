@@ -19,7 +19,9 @@ This project solves laser rate equations numerically using Python 3.
 
 ### Requirements
 - Python 3.x
-- [List dependencies here]
+- matplotlib 3.10.9
+- numpy 2.4.4
+- scipy 1.17.1
 
 ### Usage
 - Change values in LASER_PARAMS to match those of the device you wish to model.
