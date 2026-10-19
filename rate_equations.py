@@ -68,12 +68,12 @@ def calculate_cavity_volume(p):
     return p['L'] * p['w'] * p['h_active'] * (1e-15)
 
 def calculate_photon_lifetime(p):
-    # Round-trip photon time (s)
-    τ_p = 1 / ((constants.c / (p['L'] * 1e-6)) * 
+    # Round-trip/mirror-loss photon time (s)
+    τ_m = 1 / ((constants.c / (p['L'] * 1e-6)) * 
                 np.log(1 / (p['r_l'] * p['r_r'])))
     # Photon lifetime from cavity loss (s)
     τ_α = 1 / (constants.c * p['α'] * 100)    
-    return τ_p, τ_α
+    return τ_m + τ_α
 
 def calculate_mode_frequency(p):
     # Mode frequency (Hz)
@@ -102,7 +102,7 @@ def laser_rates(t, y, p, I):
     dy = np.zeros(2)
     
     # Calculate cavity parameters
-    τ_p, τ_α = calculate_photon_lifetime(p)
+    τ_p = calculate_photon_lifetime(p)
     V = calculate_cavity_volume(p)
     
     # Extract state variables
@@ -114,7 +114,7 @@ def laser_rates(t, y, p, I):
     
     # Photon rate equation
     dy[1] = ((p['Γ']*p['g']*(N - p['N_tr'])*(S/(1+p['ε']*S)) -
-             S/(τ_p + τ_α) + (p['Γ']*p['β']*N)/p['τ_n']))
+             S/τ_p + (p['Γ']*p['β']*N)/p['τ_n']))
     
     return dy
 
